@@ -28,41 +28,37 @@ function getVal(row, ...headers) {
 
 function mapRow(row) {
   return {
-    // Core identity (use header exactly as given; allow a trimmed variant)
-    name: getVal(row, 'Name ', 'Name'),
-    pid: getVal(row, 'PID'),
-
-    // Role and organization
-    role: getVal(row, 'Title/ Designation/Role'),
-    company: getVal(row, 'Currently Working at'),
-
-    // Academic
-    program: getVal(row, 'Department at UNC'),
-    degree: getVal(row, 'Degree/M.S./Ph.D.'),
-    starting_year: getVal(row, 'Starting Year'),
-    year: getVal(row, 'Year of Passing (or Predicted)'),
-
-    // Location and address
-    location: getVal(row, 'Current State'),
-    current_address: getVal(row, 'Current Address'),
-    address_bd: getVal(row, 'Address in Bangladesh'),
-    district_bd: getVal(row, 'District in Bangladesh'),
-
-    // Contacts
-    phone: getVal(row, 'Contact No.'),
+    // Core identity
+    name: getVal(row, 'Name'),
+    photo: getVal(row, 'Headshot URL'),
+    
+    // Contact information
     email: getVal(row, 'Primary Email ID'),
     email2: getVal(row, 'Secondary Email ID'),
     linkedin: getVal(row, 'LinkedIn'),
-    website: getVal(row, 'Website'),
-
-    // Extras
+    
+    // Personal information
     gender: getVal(row, 'Gender'),
-    dob: getVal(row, 'Date of Birth'),
+    
+    // Academic information
+    starting_year: getVal(row, 'Starting Year'),
+    year: getVal(row, 'Year of Passing (or Projected)'),
+    program: getVal(row, 'Department at UNC'),
+    degree: getVal(row, 'Degree/M.S./Ph.D.'),
     bio: getVal(row, 'Research Topic'),
-    highest_education: getVal(row, 'Highest Level of Education'),
+    
+    // Background education
     background_uni1: getVal(row, 'Background University #1'),
     background_uni2: getVal(row, 'Background University #2'),
-    photo: getVal(row, 'Photo')
+    highest_education: getVal(row, 'Highest Level of Education'),
+    
+    // Professional information
+    company: getVal(row, 'Currently Working at'),
+    role: getVal(row, 'Title/ Designation/Role'),
+    
+    // Location
+    location: getVal(row, 'Current State'),
+    district_bd: getVal(row, 'District in Bangladesh')
   };
 }
 
@@ -81,66 +77,112 @@ function escapeHtml(s) {
 
 function cardHTML(item) {
   const safe = (v) => escapeHtml(v);
-  const emails = [item.email, item.email2].filter((e) => String(e || '').trim() !== '');
-
-  const entries = [];
-  // Special grouped fields with icons
-  if (item.phone) {
-    const phoneHtml = `<a href="tel:${safe(item.phone)}">${safe(item.phone)}</a>`;
-    entries.push(['Contact', phoneHtml, 'kv-contact', '<i class="fa-solid fa-phone" aria-hidden="true"></i>']);
-  }
-  if (emails.length) {
-    const emailHtml = emails
-      .map((e) => `<a href="mailto:${safe(e)}">${safe(e)}</a>`)
-      .join(', ');
-    entries.push(['Emails', emailHtml, 'kv-emails', '<i class="fa-solid fa-envelope" aria-hidden="true"></i>']);
-  }
-  if (item.linkedin) {
-    const liHtml = `<a href="${safe(item.linkedin)}" target="_blank" rel="noopener">${safe(item.linkedin)}</a>`;
-    entries.push(['Linkedins', liHtml, 'kv-linkedins', '<i class="fa-brands fa-linkedin" aria-hidden="true"></i>']);
-  }
-  if (String(item.current_address || '').trim() !== '') {
-    entries.push(['Current Address', safe(item.current_address), 'kv-addresses kv-address-current', '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>']);
-  }
-  if (String(item.address_bd || '').trim() !== '') {
-    entries.push(['Address in Bangladesh', safe(item.address_bd), 'kv-addresses kv-address-bd', '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>']);
-  }
-
-  // Other plain fields
-  const others = [
-    ['PID', item.pid],
-    ['Title/ Designation/Role', item.role],
-    ['Currently Working at', item.company],
-    ['Department at UNC', item.program],
-    ['Degree/M.S./Ph.D.', item.degree],
-    ['Starting Year', item.starting_year],
-    ['Year of Passing (or Predicted)', item.year],
-    ['Current State', item.location],
-    ['Website', item.website],
-    ['Research Topic', item.bio],
-    ['Highest Level of Education', item.highest_education],
-    ['Background University #1', item.background_uni1],
-    ['Background University #2', item.background_uni2],
-    ['District in Bangladesh', item.district_bd],
-  ].filter(([, v]) => String(v || '').trim() !== '');
-
-  // Build HTML: place other fields first, then special grouped rows at the bottom
-  const kv = others
-    .concat(entries)
-    .map(([k, v, cls, icon]) => {
-      const isUrl = /^https?:\/\//i.test(String(v));
-      const valueHtml = isUrl ? `<a href="${safe(v)}" target="_blank" rel="noopener">${safe(v)}</a>` : v === undefined ? '' : String(v);
-      const iconHtml = icon ? `${icon}` : '';
-      const liClass = cls ? ` class="${cls} kv-accent"` : '';
-      return `<li${liClass}><span class="k">${iconHtml}${safe(k)}:</span> <span class="v">${valueHtml}</span></li>`;
-    })
-    .join('');
-
   const name = safe(item.name);
+  let photoUrl = item.photo;
+  
+  // Use local image for Navid Fazle Rabbi
+  if (name.toLowerCase().includes('navid fazle rabbi')) {
+    photoUrl = 'images/navid.jpeg';
+  }
+  
+  const photoHtml = photoUrl 
+    ? `<div class="photo"><img src="${safe(photoUrl)}" alt="${name}" loading="lazy" onerror="this.style.display='none'"></div>`
+    : `<div class="initials">${initials(name)}</div>`;
+
+  // Create contact section with icons
+  const contactItems = [];
+  // Add primary email if exists
+  if (item.email) {
+    contactItems.push(`
+      <a class="contact-item" href="mailto:${safe(item.email)}" title="${safe(item.email)}">
+        <i class="fa-regular fa-envelope"></i>
+      </a>`);
+  }
+  // Add secondary email if exists
+  if (item.email2) {
+    contactItems.push(`
+      <a class="contact-item" href="mailto:${safe(item.email2)}" title="${safe(item.email2)}">
+        <i class="fa-regular fa-envelope"></i>
+      </a>`);
+  }
+  // Add LinkedIn if exists
+  if (item.linkedin) {
+    const linkedinUrl = item.linkedin.startsWith('http') ? item.linkedin : `https://${item.linkedin}`;
+    contactItems.push(`
+      <a class="contact-item" href="${safe(linkedinUrl)}" target="_blank" rel="noopener" title="LinkedIn">
+        <i class="fa-brands fa-linkedin-in"></i>
+      </a>`);
+  }
+
+  // Combine years if both exist
+  const yearDisplay = item.starting_year && item.year 
+    ? `[${item.starting_year} - ${item.year}]` 
+    : item.starting_year || item.year || '';
+
+  // Create info sections with combined fields
+  const infoItems = [
+    // Personal Information
+    item.gender ? ['<i class="fa-solid fa-venus-mars"></i>Gender', item.gender] : null,
+    
+    // Academic Information
+    yearDisplay ? ['<i class="fa-solid fa-calendar-days"></i>Year', yearDisplay] : null,
+    item.program ? ['<i class="fa-solid fa-building-columns"></i>Department', item.program] : null,
+    item.degree ? ['<i class="fa-solid fa-user-graduate"></i>Degree', item.degree] : null,
+    
+    // Past Universities
+    (item.background_uni1 || item.background_uni2) ? [
+      '<i class="fa-solid fa-school"></i>Past Universities', 
+      [item.background_uni1, item.background_uni2].filter(Boolean).join(',')] : null,
+    
+    // Highest Education
+    item.highest_education ? ['<i class="fa-solid fa-graduation-cap"></i>Highest Education', item.highest_education] : null,
+    
+    // Professional Information
+    item.company ? ['<i class="fa-solid fa-building"></i>Organization', item.company] : null,
+    item.role ? ['<i class="fa-solid fa-briefcase"></i>Position', item.role] : null,
+    
+    // Location Information
+    item.location ? ['<i class="fa-solid fa-location-dot"></i>Current Location', item.location] : null,
+    item.district_bd ? ['<i class="fa-solid fa-home"></i>Home Country Location', item.district_bd] : null
+  ].filter(Boolean);  // Remove any null entries
+  
+  // Split into two columns for better layout
+  const midPoint = Math.ceil(infoItems.length / 2);
+  const leftColumn = infoItems.slice(0, midPoint);
+  const rightColumn = infoItems.slice(midPoint);
+
+  // Build HTML
   return `
   <article class="card" tabindex="0">
-    <h3 class="name">${name}</h3>
-    <ul class="kv">${kv}</ul>
+    <div class="card-header">
+      <div class="avatar">${photoHtml}</div>
+      <div class="header-text">
+        <h3 class="name">${name}</h3>
+        ${contactItems.length ? `<div class="contact-links">${contactItems.join('')}</div>` : ''}
+      </div>
+    </div>
+    
+    <div class="card-content">
+      <div class="info-grid">
+        <div class="info-column">
+          ${leftColumn.map(([k, v]) => `
+            <div class="info-row">
+              <span class="info-label">${k}</span>
+              <span class="info-value">${safe(v)}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="info-column">
+          ${rightColumn.map(([k, v]) => `
+            <div class="info-row">
+              <span class="info-label">${k}</span>
+              <span class="info-value">${safe(v)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      
+    </div>
   </article>`;
 }
 
