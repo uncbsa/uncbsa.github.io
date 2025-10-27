@@ -116,7 +116,7 @@ function cardHTML(item) {
 
   // Combine years if both exist
   const yearDisplay = item.starting_year && item.year 
-    ? `[${item.starting_year} - ${item.year}]` 
+    ? `${item.starting_year} - ${item.year}` 
     : item.starting_year || item.year || '';
 
   // Create info sections with combined fields
